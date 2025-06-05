@@ -2,7 +2,7 @@
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.1.0" # Consistent with EKS module v20.x recommendations
-  # dummy change
+  # dummy change 2
 
   name = "${local.cluster_name}-vpc"
   cidr = var.vpc_cidr

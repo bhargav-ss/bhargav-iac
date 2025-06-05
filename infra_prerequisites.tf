@@ -15,13 +15,15 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
+# dummy change
+
 locals {
   # Standard OIDC provider ARN for GitHub Actions
   github_oidc_provider_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
   digger_role_name         = "DiggerGithubActionsRole" # Consistent role name for Digger
   digger_policy_name       = "DiggerExecutionPolicy"
   # IMPORTANT: Replace with your GitHub organization and repository
-  github_repository_path   = "TypesetIO/bhargav-eks"
+  github_repository_path   = "bhargav-ss/bhargav-iac"
 }
 
 # --- Backend Infrastructure (from backend-setup.tf) ---
