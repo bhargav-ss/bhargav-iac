@@ -33,6 +33,7 @@ jobs:
             setup-aws: true
             aws-role-to-assume: arn:aws:iam::249531194221:role/DiggerGithubActionsRole
             aws-region: us-west-2
+            setup-terraform: true
         env:
           GITHUB_CONTEXT: ${{ toJson(github) }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
