@@ -1,0 +1,95 @@
+# Default values for karpenter-custom-resources.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Common settings for both NodeClass and NodePool
+nameSuffix: custom-pool # Will be appended to resource names, e.g., myapp-custom-pool
+
+# You MUST provide the EKS cluster name for selectors to work correctly.
+# This value is used by templates/nodeclass.yaml to construct default selectors.
+cluster_name: "your-eks-cluster-name" # Replace with your actual cluster name or pass via --set
+
+# NodeClass settings
+nodeClass:
+  # IMPORTANT: You MUST provide the IAM role NAME or ARN for the Karpenter nodes.
+  # If providing a name, it assumes the role is in the same AWS account.
+  # Example name: "KarpenterNodeRole-myCluster"
+  # Example ARN: "arn:aws:iam::123456789012:role/KarpenterNodeRole-myCluster"
+  role: "" 
+
+  # Default subnet and security group selectors are now constructed in the nodeclass.yaml template
+  # using the `cluster_name` value above.
+  # You can add *additional* selector terms here if needed.
+  subnetSelectorTerms: []
+    # Example: Add more specific subnet selectors if the default isn't enough
+    # - tags:
+    #     SpecialSubnet: "true"
+  additionalSubnetSelectorTerms: []
+
+  securityGroupSelectorTerms: []
+    # Example: Add more specific security group selectors
+    # - id: "sg-xxxxxxxxxxxxxxxxx"
+  additionalSecurityGroupSelectorTerms: []
+    # Example for adding another SG selector by tags (like the original Tiptap Collab SG):
+    # - tags:
+    #     Name: "pod-tiptap-collab-sg" 
+
+  amiFamily: "AL2_x86_64" # e.g., AL2_x86_64, Bottlerocket, Windows2019
+  tags:
+    NodeClassGroup: "custom-compute"
+    Environment: "dev"
+
+# NodePool settings
+nodePool:
+  labels:
+    intent: apps # General purpose app nodes. Change if needed.
+    # nodepool: set dynamically by the template to {{ .Release.Name }}-{{ .Values.nameSuffix }}
+    # NodeGroupType: set dynamically by the template to {{ .Values.nameSuffix }}
+    additional: {} # Add any additional labels for the NodePool's spec.template.metadata.labels here
+    # Example: 
+    # additional:
+    #   billing-code: "project-x"
+    #   team: "backend-devs"
+  taints:
+    # Example taints (refer to nodepool-tiptap-custom.yaml for specific example)
+    # - key: "tiptap.com/custom-pool"
+    #   effect: "NoSchedule"
+    # - key: "nvidia.com/gpu"
+    #   operator: "Exists"
+    #   effect: "NoSchedule"
+  requirements:
+    - key: "karpenter.sh/capacity-type"
+      operator: In
+      values: ["on-demand"]
+    - key: "kubernetes.io/arch"
+      operator: In
+      values: ["amd64"] # or ["arm64"]
+    - key: "eks.amazonaws.com/instance-category"
+      operator: In
+      values: ["m", "c", "r"] # General purpose, compute, memory optimized
+    - key: "eks.amazonaws.com/instance-size"
+      operator: In
+      values: ["large", "xlarge"] # Specify desired sizes
+    - key: "eks.amazonaws.com/instance-hypervisor"
+      operator: In
+      values: ["nitro"]
+  limits:
+    cpu: "100"
+    memory: "200Gi"
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized # Changed from WhenUnderutilized
+    consolidateAfter: "30s" # How long a node should be idle before consolidation. Use "" (empty string) to disable.
+    expireAfter: "Never" # How long a node lives before expiring. Use "Never" or "" (empty string) to disable expiring. Your example had 7d.
+
+# Note on Terraform integration:
+# Values like nodeClass.role and cluster_name are critical.
+# If these come from Terraform outputs, you would typically generate a values file
+# or use --set arguments during `helm install` or `helm upgrade`.
+# For example, from Terraform:
+# `helm upgrade --install my-nodepool ./karpenter-custom-resources \
+#   --set cluster_name=${local.cluster_name} \
+#   --set nodeClass.role=${aws_iam_role.karpenter_node_role.arn}`
+
+# You might want to inject the cluster name if it's used in subnet/SG selectors
+# This could come from a global value or be explicitly set.
+# node_iam_role_name: \"\" # Example: KarpenterNodeRole-mycluster 

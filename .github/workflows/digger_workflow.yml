@@ -1,0 +1,38 @@
+name: Digger Workflow
+
+on:
+  workflow_dispatch: # Allows manual triggering and triggering by Digger orchestrator
+    inputs:
+        run_name:
+            required: false
+        spec:
+            required: true
+
+run-name: '${{inputs.run_name}}'
+
+jobs:
+  digger_job:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # To checkout code, merge PRs (if auto-merge enabled by Digger), and for Digger to read digger.yml
+      actions: write       # For plan persistence if Digger action uses it
+      id-token: write      # Required for AWS OIDC to securely authenticate with AWS
+      pull-requests: write # To post PR comments (plan output, apply status)
+      statuses: write      # To update PR commit statuses
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetches all history for all branches and tags, important for Digger's context
+
+      - name: Digger Run
+        uses: diggerhq/digger@vLatest
+        with:
+            digger-spec: ${{ inputs.spec }}
+            setup-aws: true
+            aws-role-to-assume: arn:aws:iam::249531194221:role/DiggerGithubActionsRole
+            aws-region: us-west-2
+        env:
+          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

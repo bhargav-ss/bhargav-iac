@@ -1,0 +1,22 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: {{ include "karpenter-custom-resources.name" . }} # Use the helper for name
+spec:
+  role: "{{ .Values.nodeClass.role }}" # Must be provided in values
+  subnetSelectorTerms:
+    - tags:
+        Name: "{{ .Values.cluster_name }}-private*"
+  securityGroupSelectorTerms:
+    - tags:
+        Name: "{{ .Values.cluster_name }}-node"
+  # Allow overriding/extending SG and Subnet selectors if needed via values.yaml
+  {{- with .Values.nodeClass.additionalSubnetSelectorTerms }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- with .Values.nodeClass.additionalSecurityGroupSelectorTerms }}
+  {{- toYaml . | nindent 4 }}
+  {{- end }}
+  amiFamily: "{{ .Values.nodeClass.amiFamily }}"
+  tags:
+  {{- toYaml .Values.nodeClass.tags | nindent 4 }} 

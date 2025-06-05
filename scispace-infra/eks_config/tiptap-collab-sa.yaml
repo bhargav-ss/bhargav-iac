@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${tiptap_collab_service_account_name}
+  namespace: ${tiptap_collab_namespace}
+  annotations:
+    # This annotation links the Service Account to the IAM role for EKS Pod Identity
+    eks.amazonaws.com/role-arn: ${tiptap_collab_pod_identity_role_arn}
+  labels:
+    app: tiptap-collab 

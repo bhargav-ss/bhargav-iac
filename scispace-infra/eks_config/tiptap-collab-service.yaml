@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tiptap-collab-service
+  namespace: ${tiptap_collab_namespace} # Templated
+spec:
+  selector:
+    app: tiptap-collab
+  ports:
+    - name: collab-http
+      protocol: TCP
+      port: 8080
+      targetPort: collab
+    - name: api-http
+      protocol: TCP
+      port: 8081
+      targetPort: api
+  type: LoadBalancer 

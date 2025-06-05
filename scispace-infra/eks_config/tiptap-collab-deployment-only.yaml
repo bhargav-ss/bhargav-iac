@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tiptap-collab-deployment
+  namespace: ${tiptap_collab_namespace} # Templated
+  labels:
+    app: tiptap-collab
+spec:
+  replicas: ${tiptap_collab_replicas}
+  selector:
+    matchLabels:
+      app: tiptap-collab
+  template:
+    metadata:
+      labels:
+        app: tiptap-collab
+        antiaffinity_group: ${tiptap_collab_namespace}-antiaffinity-group
+    spec:
+      serviceAccountName: ${tiptap_collab_service_account_name} # Use the dedicated service account
+      nodeSelector:
+        NodeGroupType: tiptap-custom
+      tolerations:
+        - key: "tiptap.com/custom-pool"
+          operator: "Exists"
+          effect: "NoSchedule"
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: antiaffinity_group
+                    operator: In
+                    values:
+                      - ${tiptap_collab_namespace}-antiaffinity-group
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: tiptap-collab-server
+        image: ${tiptap_collab_image} # Templated
+        ports:
+        - name: collab
+          containerPort: 8080
+        - name: api
+          containerPort: 8081
+        env:
+        - name: PORT_API
+          value: "${tiptap_port_api}"
+        - name: AWS_USE_S3
+          value: "${tiptap_aws_use_s3}"
+        - name: AWS_BUCKET_NAME
+          value: "${tiptap_s3_bucket_name}"
+        - name: AWS_FOLDER_NAME
+          value: "${tiptap_aws_folder_name}"
+        - name: AWS_REGION
+          value: "${aws_region}"
+        - name: AWS_FORCE_PATH_STYLE
+          value: "${tiptap_aws_force_path_style}"
+        - name: DATABASE_URL
+          value: "${tiptap_database_url}"
+        - name: DATABASE_URL_DIRECT
+          value: "${tiptap_database_url_direct}"
+        - name: COLLAB_CLUSTERMODE
+          value: "${tiptap_collab_clustermode}"
+        - name: REDIS_URL
+          value: "${tiptap_redis_url}"
+        - name: LICENSE_KEY
+          value: "${tiptap_license_key}"
+        - name: JWT_SECRET
+          value: "${tiptap_jwt_secret}"
+        - name: API_SECRET
+          value: "${tiptap_api_secret}"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: collab
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        livenessProbe:
+          httpGet:
+            path: /
+            port: collab
+          initialDelaySeconds: 30
+          periodSeconds: 30 

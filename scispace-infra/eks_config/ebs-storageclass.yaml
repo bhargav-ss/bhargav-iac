@@ -1,0 +1,11 @@
+# Standard EKS Auto Mode EBS StorageClass
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: auto-ebs-sc # Default SC for EKS Auto Mode
+provisioner: ebs.csi.aws.com
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+parameters:
+  type: gp3 # General Purpose SSD (gp3)
+  fsType: ext4 

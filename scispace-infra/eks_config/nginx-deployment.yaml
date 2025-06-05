@@ -1,0 +1,31 @@
+# eks_config/nginx-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-dummy-deployment
+  namespace: nginx # Changed to nginx namespace
+  labels:
+    app: nginx-dummy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-dummy
+  template:
+    metadata:
+      labels:
+        app: nginx-dummy
+        # This pod needs to be scheduled on the general-purpose nodepool
+    spec:
+      nodeSelector:
+        NodeGroupType: general-purpose # Selects the new NodePool created by the Helm chart
+      tolerations:
+      - key: "workload-type"
+        operator: "Equal"
+        value: "general-purpose"
+        effect: "NoSchedule"
+      containers:
+      - name: nginx
+        image: nginx:latest # Standard nginx image
+        ports:
+        - containerPort: 80 

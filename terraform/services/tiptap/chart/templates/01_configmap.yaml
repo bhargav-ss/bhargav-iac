@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "tiptap-collab-server.name" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "tiptap-collab-server.labels" . | nindent 4 }}
+data:
+  PORT_API: {{ .Values.config.PORT_API | quote }}
+  AWS_USE_S3: {{ .Values.config.AWS_USE_S3 | quote }}
+  AWS_BUCKET_NAME: {{ .Values.config.AWS_BUCKET_NAME | quote }}
+  AWS_FOLDER_NAME: {{ .Values.config.AWS_FOLDER_NAME | quote }}
+  AWS_REGION: {{ .Values.config.AWS_REGION | quote }}
+  AWS_FORCE_PATH_STYLE: {{ .Values.config.AWS_FORCE_PATH_STYLE | quote }}
+  DATABASE_URL: {{ .Values.config.DATABASE_URL | quote }}
+  DATABASE_URL_DIRECT: {{ .Values.config.DATABASE_URL_DIRECT | quote }}
+  REDIS_URL: {{ .Values.config.REDIS_URL | quote }} 
+  COLLAB_CLUSTERMODE: {{ .Values.config.COLLAB_CLUSTERMODE | quote }}

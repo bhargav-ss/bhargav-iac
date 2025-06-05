@@ -1,0 +1,22 @@
+# tiptap-terraform/eks_config/caddy-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: caddy-tiptap-proxy-service
+  namespace: ${tiptap_collab_namespace} # Same namespace as Caddy Deployment
+  labels:
+    app: caddy-tiptap-proxy
+spec:
+  type: ClusterIP
+  selector:
+    app: caddy-tiptap-proxy # Must match labels on Caddy pods
+  ports:
+    - name: http
+      port: 80 # External port clients will connect to
+      targetPort: ${caddy_internal_http_port} # Caddy container's listening port (e.g., 8080)
+      protocol: TCP
+    # Add port 443 if Caddy is configured for HTTPS termination
+    # - name: https
+    #   port: 443
+    #   targetPort: <caddy_https_port_if_different_or_same_as_http_if_using_auto_https_on_it>
+    #   protocol: TCP 

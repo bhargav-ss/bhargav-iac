@@ -1,0 +1,59 @@
+# tiptap-terraform/eks_config/caddy-configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: caddy-config
+  namespace: ${tiptap_collab_namespace} # Deploying Caddy in the same namespace as Tiptap for now
+  labels:
+    app: caddy-tiptap-proxy
+data:
+  Caddyfile: |
+    {
+      # auto_https off # Uncomment if not using Caddy for TLS termination initially
+      #debug # Uncomment for verbose Caddy logs during troubleshooting
+    }
+
+    # Caddy will listen on this port inside the container.
+    # The K8s service will map external ports (e.g., 80/443) to this.
+    http://:${caddy_internal_http_port} {
+      log {
+        output stdout
+        format console
+      }
+      encode gzip
+
+      # API traffic
+      handle /api/* {
+        reverse_proxy {
+          lb_policy header "X-Tiptap-Shard-Id" {
+            fallback first
+          }
+          dynamic a tiptap-collab-headless.${tiptap_collab_namespace}.svc.cluster.local 8081 {
+            refresh 10s
+          }
+
+          # health port is 8080
+          # health endpoint is /
+          health_port     8080
+          health_uri      /
+          health_interval 3s
+          health_timeout  1s
+        }
+      }
+
+      # WebSocket/Collab traffic (and other general traffic)
+      handle {
+        reverse_proxy {
+          lb_policy query "shard" {
+            fallback first
+          }
+          dynamic a tiptap-collab-headless.${tiptap_collab_namespace}.svc.cluster.local 8080 {
+            refresh 10s
+          }
+          health_port     8080
+          health_uri      /
+          health_interval 3s
+          health_timeout  1s
+        }
+      }
+    } 

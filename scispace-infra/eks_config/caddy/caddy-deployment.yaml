@@ -1,0 +1,75 @@
+# tiptap-terraform/eks_config/caddy/caddy-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy-tiptap-proxy
+  namespace: ${tiptap_collab_namespace} # Same namespace as ConfigMap
+  labels:
+    app: caddy-tiptap-proxy
+spec:
+  replicas: 1 # Start with 1, can be scaled later
+  selector:
+    matchLabels:
+      app: caddy-tiptap-proxy
+  template:
+    metadata:
+      labels:
+        app: caddy-tiptap-proxy
+        antiaffinity_group: ${tiptap_collab_namespace}-antiaffinity-group # Use namespace based value
+    spec:
+      nodeSelector:
+        NodeGroupType: tiptap-custom # Ensure Caddy schedules on the Tiptap custom nodes
+      tolerations:
+        - key: "tiptap.com/custom-pool"
+          operator: "Exists"
+          effect: "NoSchedule" # Tolerates the taint on the tiptap-custom nodepool
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: antiaffinity_group
+                operator: In
+                values:
+                - ${tiptap_collab_namespace}-antiaffinity-group # Use namespace based value
+            topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: caddy
+        image: caddy:2.8.4 # Using a specific stable version
+        ports:
+        - name: http
+          containerPort: ${caddy_internal_http_port} # Port Caddy listens on (from ConfigMap)
+        # Add other ports if Caddy serves HTTPS (443) or admin (2019) directly
+        volumeMounts:
+        - name: caddyfile-config
+          mountPath: /etc/caddy/Caddyfile
+          subPath: Caddyfile # Mount the Caddyfile key from the ConfigMap
+        - name: caddy-data
+          mountPath: /data # For Caddy's persistent data (certs, etc.)
+        # - name: caddy-config-dir # Optional: for Caddy's internal config state if needed
+        #   mountPath: /config
+        readinessProbe:
+          httpGet:
+            path: /health # Caddy's own health endpoint (requires enabling it in Caddyfile or using admin API)
+            port: ${caddy_internal_http_port} # Or Caddy's admin port 2019 if admin API is on for health checks
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: ${caddy_internal_http_port}
+          initialDelaySeconds: 15
+          periodSeconds: 10
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
+      volumes:
+      - name: caddyfile-config
+        configMap:
+          name: caddy-config # Name of the ConfigMap created earlier
+      - name: caddy-data
+        emptyDir: {}

@@ -1,0 +1,39 @@
+apiVersion: karpenter.sh/v1 # EKS Auto Mode uses Karpenter v1alpha5 equivalent APIs
+kind: NodePool
+metadata:
+  name: tiptap-custom-amd64
+spec:
+  template:
+    metadata:
+      labels:
+        intent: apps # General purpose app nodes
+        nodepool: tiptap-custom-amd64
+        NodeGroupType: tiptap-custom # For selecting with pod nodeSelector
+    spec:
+      taints:
+        - key: tiptap.com/custom-pool
+          effect: NoSchedule
+      requirements:
+        - key: "karpenter.sh/capacity-type"
+          operator: In
+          values: ["on-demand"]
+        - key: "kubernetes.io/arch"
+          operator: In
+          values: ["amd64"]
+        - key: "eks.amazonaws.com/instance-category"
+          operator: In
+          values: ["m", "c", "r"] # General purpose, compute, memory optimized
+        - key: "eks.amazonaws.com/instance-size"
+          operator: In # Specify desired sizes
+          values: ["large", "xlarge"]
+        - key: "eks.amazonaws.com/instance-hypervisor"
+          operator: In
+          values: ["nitro"]
+      nodeClassRef:
+        name: tiptap-custom # Matches the metadata.name in nodeclass-tiptap-custom.yaml
+        group: eks.amazonaws.com
+        kind: NodeClass
+  limits:
+    cpu: "100" # Example limit
+    memory: "200Gi"
+  # No disruption settings, allow nodes to be replaced easily for this demo 

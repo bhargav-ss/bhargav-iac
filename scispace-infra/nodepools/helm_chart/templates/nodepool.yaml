@@ -1,0 +1,41 @@
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: {{ include "karpenter-custom-resources.name" . }}
+  labels:
+    {{- include "karpenter-custom-resources.labels" . | nindent 4 }}
+spec:
+  template:
+    metadata:
+      labels:
+        intent: {{ .Values.nodePool.labels.intent | default "apps" }}
+        nodepool: {{ include "karpenter-custom-resources.name" . }}
+        NodeGroupType: {{ .Values.nameSuffix }} # Or make this more flexible if needed
+        # You can add more fixed labels here or allow them to be fully driven by values.yaml
+        {{- with .Values.nodePool.labels.additional }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      nodeClassRef:
+        group: eks.amazonaws.com
+        kind: NodeClass
+        name: {{ include "karpenter-custom-resources.name" . }} # Matches the NodeClass name
+      requirements:
+      {{- toYaml .Values.nodePool.requirements | nindent 8 }}
+      {{- if .Values.nodePool.taints }}
+      taints:
+      {{- toYaml .Values.nodePool.taints | nindent 8 }}
+      {{- end }}
+  limits:
+  {{- toYaml .Values.nodePool.limits | nindent 4 }}
+  disruption:
+  {{- toYaml .Values.nodePool.disruption | nindent 4 }}
+
+{{/* Default labels template */}}
+{{- define "karpenter-custom-resources.labels" -}}
+helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
+app.kubernetes.io/name: {{ .Chart.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
+{{- end -}} 

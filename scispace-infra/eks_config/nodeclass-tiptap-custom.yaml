@@ -1,0 +1,22 @@
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: tiptap-custom # Renamed for clarity
+spec:
+  role: "${node_iam_role_name}" # This will be templated by Terraform
+  subnetSelectorTerms:
+    - tags:
+        # Ensure your private subnets in vpc.tf have this tag key/value
+        # The main.tf currently tags with: Name = "$${local.cluster_name}-private"
+        Name: "${cluster_name}-private*"
+  securityGroupSelectorTerms:
+    - tags:
+        # Selects the main EKS node security group
+        Name: "${cluster_name}-node"
+    - tags:
+        # Selects the Tiptap Collab specific security group
+        Name: "pod-tiptap-collab-sg" # This matches the Name tag we give it in main.tf
+  amiFamily: "AL2_x86_64" # Example, can be Bottlerocket, etc.
+  tags:
+    NodeClassGroup: "tiptap-custom-compute"
+    Environment: "demo" 

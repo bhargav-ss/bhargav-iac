@@ -1,0 +1,21 @@
+# kube-services-nodeclass.yaml
+apiVersion: eks.amazonaws.com/v1
+kind: NodeClass
+metadata:
+  name: kube-services # Name for this NodeClass
+spec:
+  amiFamily: AL2_x86_64 # Or Bottlerocket, etc.
+  role: ${node_iam_role_name} # Will be templated with var.custom_automode_node_role_name
+  subnetSelectorTerms:
+    - tags:
+        Name: "${cluster_name}-private*" # Selects private subnets of the EKS cluster
+  securityGroupSelectorTerms:
+    - tags:
+        Name: "${cluster_name}-node" # Standard EKS node security group
+    # You might also want to include the pod_tiptap_collab_sg if services here need to talk to Tiptap pods directly
+    # - tags:
+    #     Name: "pod-tiptap-collab-sg"
+  tags:
+    karpenter.sh/discovery: ${cluster_name}
+    NodeClassGroup: kube-services-compute
+    Environment: demo # Or your environment tag 

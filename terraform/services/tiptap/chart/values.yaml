@@ -1,0 +1,66 @@
+# Default values for tiptap-collab-server chart.
+# This is a YAML-formatted file.
+# Declare variables that are passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: 249531194221.dkr.ecr.us-west-2.amazonaws.com/bhargav/tiptap
+  pullPolicy: IfNotPresent
+  # Tag should come from chart appVersion
+  tag: "1.0.0"
+
+serviceAccount:
+  # name: tiptap-collab-server-sa # We'll let Terraform manage the SA name and pass it in if needed, or use a generated name.
+  # For EKS Pod Identity, the SA name is important for the association.
+  # If Terraform creates the SA and the Helm chart also tries to create it, there can be conflicts.
+  # Best to have Terraform create the SA, and the chart *uses* it.
+  # However, if the chart *defines* the SA, Terraform should not also define it.
+  # For now, let's assume the chart will define its own SA if not provided an existing one.
+  # We will likely have Terraform create the SA and pass its name to the Helm chart.
+  create: true # Let the chart create it, but we'll ensure Terraform creates the Pod Identity association to this SA name.
+  name: "tiptap-collab-server-sa" # Default name, matches what we had before
+  annotations: {}
+  # eks.amazonaws.com/security-group-for-pods: "" # Placeholder for SG ID
+  # automountServiceAccountToken: true # Default is usually true
+
+# Non-sensitive environment variables
+config:
+  PORT_API: "8081"
+  AWS_USE_S3: "1"
+  AWS_BUCKET_NAME: "bhargav-tiptap-poc"
+  AWS_FOLDER_NAME: "tiptap-prod"
+  AWS_REGION: "us-west-2" 
+  AWS_FORCE_PATH_STYLE: "1"
+  DATABASE_URL: "postgres://scispace_root:5b2uhtv5aK8z@scispace.c0fwkhspicdq.us-west-2.rds.amazonaws.com:5432/tiptap"
+  DATABASE_URL_DIRECT: "postgres://scispace_root:5b2uhtv5aK8z@scispace.c0fwkhspicdq.us-west-2.rds.amazonaws.com:5432/tiptap"
+  COLLAB_CLUSTERMODE: "1"
+  REDIS_URL: "redis://placeholder"
+
+# Sensitive environment variables (will be put into a Kubernetes Secret)
+secrets:
+  LICENSE_KEY: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnRpcHRhcC5kZXYiLCJpYXQiOjE3NDczMzc3MzMuOTgxOTIxLCJhdWQiOiJ4OWxkMGxsayJ9.QwRvQ21KPv8vEpFV991AUbAylVG0VWCY5wGbQOVZnms"
+  JWT_SECRET: "76365bb4a90259da5be2ccdaf9f5e09b3b8c6b9562ff837f2468424be0565258745fb7b89e4c40df3b423703cda328dbea4364c655e9d4bf3fb9b9f395e060b7a99bfb134aaf6a8bddb5bac5a01691ce370ec5fc26c7170766c55dbb64b558174e02760a36d0a4dee4bd8d1a8a1623f975c1abcbc48f1d0d0f69dd79f8bda8b785292bf40ab62bd34a65ac2348531ed778173804703105157932362bcc11dafd096009fc7eaee79aa7d5bfba3a3c8581709889d3c3b9e6b867d24c2f145700891f75da3bbe2945065d0a676dac1bb77b7b6d6264a6188b8f13fbf88b53a840d66ed20d943d69409fe339b91a03962952a05bac9d4e17124a1fdac9c5867f13a0"
+  API_SECRET: "huhuhaha"
+
+service:
+  type: ClusterIP # Or LoadBalancer
+  ports:
+    collab: 8080
+    api: 8081
+    metrics: 8082
+
+# Probes for deployment
+readinessProbe:
+  httpGet:
+    path: /
+    port: collab # Changed from api to collab (port 8080)
+  initialDelaySeconds: 15
+  periodSeconds: 20
+
+livenessProbe:
+  httpGet:
+    path: /
+    port: collab # Changed from api to collab (port 8080)
+  initialDelaySeconds: 30
+  periodSeconds: 30
